@@ -12,7 +12,7 @@ The board combines a powerful **Raspberry Pi RP2350** microcontroller with a bri
 ## Main Features
 
 - Raspberry Pi **RP2350** microcontroller
-- Dual-core ARM Cortex-M33 and dual-core Hazard3 RISC-V architecture
+- Dual-core ARM Cortex-M33
 - Up to **150 MHz** CPU clock
 - **520 KB SRAM**
 - **16 MB Flash**
