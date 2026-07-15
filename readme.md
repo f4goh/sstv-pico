@@ -7,7 +7,7 @@ While WSPR-Pico demonstrated that the Raspberry Pi RP2040 could be used as a com
 
 The board combines a powerful **Raspberry Pi RP2350** microcontroller with a bright **2-inch capacitive touch display**, making it ideal for generating, displaying, and transmitting SSTV images without additional hardware. The integrated LCD offers a convenient user interface for image selection, transmission control, and system monitoring.
 
-![touch](images/touch2.jpg)
+![touch](images/touch2.png)
 
 ## Main Features
 
