@@ -1,0 +1,154 @@
+/* 
+* PicoWSPR 40m/30m
+* https://www.elektronik-labor.de/Raspberry/Pico38.html
+* 
+* TX	GP1 (RX)
+* RX	GP0 (TX)
+* https://github.com/earlephilhower/arduino-pico
+* one wire  GP2
+* LED GP4
+* BP MENU GP6 actif au NL0 (detection à la mise sous tension)
+ * 
+ * installer wsjt-x
+ * https://wsjt.sourceforge.io/wsjtx.html
+ * wsjtx_2.7.0_amd64.deb
+ * sudo dpkg -i wsjtx_2.7.0_amd64.deb
+ * sudo apt-get install -f
+ * 
+ */
+
+#include <Arduino.h>
+
+//#include "Afficheur.h"
+#include <Adafruit_iCap_OV2640.h> // Camera library
+
+#include <Adafruit_ST7789.h>
+
+#define TFT_BL   15
+#define TFT_DC   16
+#define TFT_CS   17
+#define TFT_SCK  18
+#define TFT_MOSI 19
+#define TFT_RST  20
+
+Adafruit_ST7789 tft(TFT_CS, TFT_DC, TFT_RST);
+
+
+
+
+//Afficheur *afficheur;
+
+// Set up arch and pins structures for Pico RP2040.
+iCap_arch arch = {
+  .pio = pio0, // Which PIO peripheral to use (pio0 or pio1)
+  .bswap = true,
+  // Other elements are set by the library at runtime and should not be
+  // specified by user code (will be overwritten).
+};
+OV2640_pins pins = {
+  .enable = 21, // Also called PWDN, or set to -1 and tie to GND
+  .reset  = -1, // Cam reset, or set to -1 and tie to 3.3V
+  .xclk   = 11, // MCU clock out / cam clock in
+  .pclk   = 10, // Cam clock out / MCU clock in
+  .vsync  = 18, // Also called DEN1
+  .hsync  = 9, // Also called DEN2
+  .data   = {0, 1, 2, 3, 4, 5, 6, 7}, // Camera parallel data out
+  .sda    = 22, // I2C data
+  .scl    = 23, // I2C clock
+};
+
+#define CAM_I2C Wire
+#define CAM_SIZE OV2640_SIZE_QQVGA // QQVGA (160x120 pixels)
+#define CAM_MODE ICAP_COLOR_RGB565 // RGB plz
+
+Adafruit_iCap_OV2640 cam(pins, &arch, CAM_I2C);
+
+
+
+void setup(void) {
+    //set_sys_clock_khz(CLK_KHZ, true);
+    Serial.begin(115200);
+  
+    
+    Wire.setSDA(12);
+    Wire.setSCL(13);
+    
+    Wire.begin();
+    Wire.setClock(400000);
+    
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
+
+    SPI.setSCK(TFT_SCK);
+    SPI.setTX(TFT_MOSI);
+    
+
+
+    
+    tft.init(240, 320);
+    tft.setSPISpeed(48000000);
+    tft.fillScreen(ST77XX_BLACK);
+    tft.println("Howdy");
+    delay(10000);
+    //  afficheur = new Afficheur();
+    //  afficheur->begin();
+
+    //  afficheur->modeDisplay("test");
+    //afficheur->modeEfface();
+
+    iCap_status status = cam.begin(CAM_SIZE, CAM_MODE, 30.0);
+    if (status != ICAP_STATUS_OK) {
+    Serial.println("Camera begin() fail");
+    for(;;);
+  }
+
+  // Read manufacturer and product IDs -- these are Bank 1 registers
+  cam.writeRegister(OV2640_REG_RA_DLMT, OV2640_RA_DLMT_SENSOR);
+  uint16_t mid = (cam.readRegister(OV2640_REG1_MIDH) << 8) |
+                  cam.readRegister(OV2640_REG1_MIDL);
+  uint16_t pid = (cam.readRegister(OV2640_REG1_PIDH) << 8) |
+                  cam.readRegister(OV2640_REG1_PIDL);
+  Serial.println(mid, HEX);
+  Serial.println(pid, HEX);
+  
+}
+
+   
+// TFT setAddrWindow() involves a lot of context switching that can slow
+// things down a bit, so we don't do it on every frame. Instead, it's only
+// set periodically, and we just keep writing data to the same area of the
+// screen (it wraps around automatically). We do need an OCCASIONAL
+// setAddrWindow() in case SPI glitches, as this syncs things up to a
+// known region of the screen again.
+#define KEYFRAME 30        // Number of frames between setAddrWindow commands
+uint16_t frame = KEYFRAME; // Force 1st frame as keyframe
+
+void loop() {
+    if (++frame >= KEYFRAME) { // Time to sync up a fresh address window?
+        frame = 0;
+
+        tft.endWrite(); // Close out prior transfer
+        tft.startWrite(); // and start a fresh one (required)
+        // Address window centers QQVGA image on screen. NO CLIPPING IS
+        // PERFORMED, it is assumed here that the camera image is equal
+        // or smaller than the screen.
+        tft.setAddrWindow((tft.width() - cam.width()) / 2,
+                (tft.height() - cam.height()) / 2,
+                cam.width(), cam.height());
+    }
+
+    // Pause the camera DMA - hold buffer steady to avoid tearing
+    //  cam.suspend();
+
+    if (CAM_MODE == ICAP_COLOR_YUV) {
+        // Convert grayscale for TFT preview
+        cam.Y2RGB565();
+    }
+
+    tft.writePixels(cam.getBuffer(), cam.width() * cam.height(), false, false);
+
+    //  cam.resume(); // Resume DMA into camera buffer
+}
+
+
+
