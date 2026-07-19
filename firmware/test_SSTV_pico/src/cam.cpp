@@ -239,6 +239,7 @@ void cam_play()
     dma_channel_set_write_addr(DMA_CAM_RD_CH, cam_ptr, true);
 }
 
+/*
 void cam_swap_rgb565_bytes(uint8_t *buffer, size_t pixel_count)
 {
     uint8_t *p = buffer;
@@ -252,4 +253,19 @@ void cam_swap_rgb565_bytes(uint8_t *buffer, size_t pixel_count)
         p += 2;
     }
 }
+*/
 
+void cam_swap_rgb565_bytes(uint8_t *bufferSrc, uint8_t *bufferDest, size_t pixel_count)
+{
+    uint8_t *src = bufferSrc;
+    uint8_t *dst = bufferDest;
+
+    while (pixel_count--)
+    {
+        dst[0] = src[1];
+        dst[1] = src[0];
+
+        src += 2;
+        dst += 2;
+    }
+}

@@ -313,7 +313,8 @@ void Sstv::idle() {
             len : durée en µs   
  */
 
-void Sstv::toneUs(float freq, uint32_t len) {
+void __not_in_flash_func(Sstv::toneUs)(float freq, uint32_t len){
+//void Sstv::toneUs(float freq, uint32_t len) {
     irqDone = 0;
 
     setFreq(freq);
@@ -531,8 +532,8 @@ void Sstv::sendEndVis(){
             ptr : pointeur pour la mémoire de la camera
             imgtype : type de transmission enum  PROG_MEM ou CAMERA
  */
-
-void Sstv::sendLineRGB(int idxLine,uint8_t *ptr,imageType imgtype) {
+void __not_in_flash_func(Sstv::sendLineRGB)(int idxLine,uint8_t *ptr,imageType imgtype){
+//void Sstv::sendLineRGB(int idxLine,uint8_t *ptr,imageType imgtype) {
   // check first line flag in Scottie modes
     if (firstLine && ((mode.visCode == SSTV_SCOTTIE_1) || (mode.visCode == SSTV_SCOTTIE_2) || (mode.visCode == SSTV_SCOTTIE_DX))) {
         firstLine = false;
@@ -556,7 +557,7 @@ void Sstv::sendLineRGB(int idxLine,uint8_t *ptr,imageType imgtype) {
                         color = mireRGB[j % 320];
                     }
                 } else {
-                    color = (ptr[j * 2] << 8) + ptr[j * 2 + 1]; //ici récup word pixel msb+lsb   
+                    color = (ptr[j * 2] << 8) + ptr[j * 2 + 1]; //ici récup word pixel msb+lsb  
                 }
                 switch (mode.tones[i].tt) {
                     case(SCAN_RED):
@@ -582,7 +583,8 @@ void Sstv::sendLineRGB(int idxLine,uint8_t *ptr,imageType imgtype) {
 //            BY    RY
 //YUV422 = Y0 U0 Y1 V0
 
-void Sstv::sendLineYUV(int idxLine, uint8_t *ptr, imageType imgtype) {
+void __not_in_flash_func(Sstv::sendLineYUV)(int idxLine,uint8_t *ptr,imageType imgtype){
+//void Sstv::sendLineYUV(int idxLine, uint8_t *ptr, imageType imgtype) {
     // send all tones in sequence
     uint16_t color = 0;
     const word *addPgm;
@@ -715,7 +717,8 @@ void Sstv::standby(){
   off();
 }
 
-void Sstv::marshall() {
+void __not_in_flash_func(Sstv::marshall)(){
+//void Sstv::marshall() {
     anchor->timerCallback();
 }
 
@@ -724,8 +727,8 @@ void Sstv::marshall() {
    @details irq avec syncro oscillo
  */
 
-
-void Sstv::timerCallback() {
+void __not_in_flash_func(Sstv::timerCallback)(){
+//void Sstv::timerCallback() {
     hw_clear_bits(&timer_hw->intr, 1u << ALARM_NUM);
     irqDone=1;
 }
@@ -770,8 +773,8 @@ void Sstv::sendMire(modeCoul mCoul){
    @details envoie une image test depuis la progmem en RGB seulement
  */
 
-
-void Sstv::sendImg(modeCoul mCoul) {
+void __not_in_flash_func(Sstv::sendImg)(modeCoul mCoul){
+//void Sstv::sendImg(modeCoul mCoul) {
     Serial.print(F("[SSTV] Sending RGB test image picture ... "));
     sendHeaderStandard(); // send synchronization header first
     // send all picture lines   
