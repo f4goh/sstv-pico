@@ -76,7 +76,7 @@ void Dds::setFreqBase(uint32_t freq) {
 
 void __not_in_flash_func(Dds::setFreq)(uint32_t freq){
 //void Dds::setFreq(uint32_t freq) {
-    static constexpr uint32_t IF_FREQ = 7100000UL;
+    static constexpr uint32_t IF_FREQ = 7040000UL;
     static constexpr uint32_t DDS_OFFSET = (10UL << 24);
     static constexpr uint64_t DDS_NUM =
             (uint64_t) CLK_KHZ * 1000ULL * (1ULL << 24);

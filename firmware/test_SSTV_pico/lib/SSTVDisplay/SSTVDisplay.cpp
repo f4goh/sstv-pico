@@ -68,7 +68,7 @@ colorYUV_t SSTVDisplay::RGBtoYUV(colorRGB_t color){
 
 
 uint16_t SSTVDisplay::drawString(int16_t xMove, int16_t yMove, const String &strUser,uint8_t *_ptrImage,modeCoul _modeC) {
-  uint16_t lineHeight = pgm_read_byte(fontData + HEIGHT_POS);
+  uint16_t lineHeight = *(fontData + HEIGHT_POS);
   ptrImage=_ptrImage;
   modeC= _modeC;
   
@@ -112,9 +112,9 @@ uint16_t SSTVDisplay::drawString(int16_t xMove, int16_t yMove, const String &str
 }
 
 uint16_t SSTVDisplay::drawStringInternal(int16_t xMove, int16_t yMove, const char* text, uint16_t textLength, uint16_t textWidth, bool utf8) {
-  uint8_t textHeight       = fontData + HEIGHT_POS;
-  uint8_t firstChar        = fontData + FIRST_CHAR_POS;
-  uint16_t sizeOfJumpTable = (fontData + CHAR_NUM_POS)  * JUMPTABLE_BYTES;
+uint8_t textHeight       = *(fontData + HEIGHT_POS);
+uint8_t firstChar        = *(fontData + FIRST_CHAR_POS);
+uint16_t sizeOfJumpTable = *(fontData + CHAR_NUM_POS) * JUMPTABLE_BYTES;
 
   uint16_t cursorX         = 0;
   uint16_t cursorY         = 0;
@@ -151,27 +151,29 @@ uint16_t SSTVDisplay::drawStringInternal(int16_t xMove, int16_t yMove, const cha
       if (code == 0)
         continue;
     } else
-      code = text[j];
-    if (code >= firstChar) {
-      uint8_t charCode = code - firstChar;
+            code = text[j];
+        if (code >= firstChar) {
+            uint8_t charCode = code - firstChar;
 
-      // 4 Bytes per char code
-      uint8_t msbJumpToChar    = fontData + JUMPTABLE_START + charCode * JUMPTABLE_BYTES ;                  // MSB  \ JumpAddress
-      uint8_t lsbJumpToChar    = fontData + JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_LSB;   // LSB /
-      uint8_t charByteSize     = fontData + JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_SIZE;  // Size
-      uint8_t currentCharWidth = fontData + JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_WIDTH; // Width
+            // 4 Bytes per char code
+            uint8_t msbJumpToChar = fontData[JUMPTABLE_START + charCode * JUMPTABLE_BYTES];
 
-      // Test if the char is drawable
-      if (!(msbJumpToChar == 255 && lsbJumpToChar == 255)) {
-        // Get the position of the char data
-        uint16_t charDataPosition = JUMPTABLE_START + sizeOfJumpTable + ((msbJumpToChar << 8) + lsbJumpToChar);
-        drawInternal(xPos, yPos, currentCharWidth, textHeight, fontData, charDataPosition, charByteSize);
-      }
+            uint8_t lsbJumpToChar = fontData[JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_LSB];
 
-      cursorX += currentCharWidth;
+            uint8_t charByteSize = fontData[JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_SIZE];
+
+            uint8_t currentCharWidth = fontData[JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_WIDTH];
+            // Test if the char is drawable
+            if (!(msbJumpToChar == 255 && lsbJumpToChar == 255)) {
+                // Get the position of the char data
+                uint16_t charDataPosition = JUMPTABLE_START + sizeOfJumpTable + ((msbJumpToChar << 8) + lsbJumpToChar);
+                drawInternal(xPos, yPos, currentCharWidth, textHeight, fontData, charDataPosition, charByteSize);
+            }
+
+            cursorX += currentCharWidth;
+        }
     }
-  }
-  return charCount;
+    return charCount;
 }
 
 
@@ -277,7 +279,7 @@ void inline SSTVDisplay::drawInternal(int16_t xMove, int16_t yMove, int16_t widt
 
 
 uint16_t SSTVDisplay::getStringWidth(const char* text, uint16_t length, bool utf8) {
-  uint16_t firstChar        = fontData + FIRST_CHAR_POS;
+  uint16_t firstChar = fontData[FIRST_CHAR_POS];
 
   uint16_t stringWidth = 0;
   uint16_t maxWidth = 0;
@@ -289,7 +291,7 @@ uint16_t SSTVDisplay::getStringWidth(const char* text, uint16_t length, bool utf
       if (c == 0)
         continue;
     }
-    stringWidth += fontData + JUMPTABLE_START + (c - firstChar) * JUMPTABLE_BYTES + JUMPTABLE_WIDTH;
+    stringWidth += fontData[JUMPTABLE_START + (c - firstChar) * JUMPTABLE_BYTES + JUMPTABLE_WIDTH];
     if (c == 10) {
       maxWidth = max(maxWidth, stringWidth);
       stringWidth = 0;

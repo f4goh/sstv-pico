@@ -73,4 +73,6 @@ void cam_pause();
 void cam_play();
 //void cam_swap_rgb565_bytes(uint8_t *buffer, size_t pixel_count);
 void cam_swap_rgb565_bytes(uint8_t *bufferSrc, uint8_t *bufferDest, size_t pixel_count);
-
+void cam_rotate_90_mirror_vertical_rgb565(uint8_t *src, uint8_t *dst,
+                                          uint16_t src_width,
+                                          uint16_t src_height);

@@ -223,20 +223,61 @@ void set_pwm_freq_kHz(uint32_t freq_khz, uint8_t gpio_num)
 function:   Pause camera DMA transfer
 parameter:
 ********************************************************************************/
+/*
 void cam_pause()
 {
     cam_running = false;
     dma_channel_abort(DMA_CAM_RD_CH);
+}
+*/
+
+void cam_pause()
+{
+    cam_running = false;
+
+    // Stop DMA
+    dma_channel_abort(DMA_CAM_RD_CH);
+
+    // Stop PIO
+    pio_sm_set_enabled(pio_cam, sm_cam, false);
+
+    // Clear FIFO
+    pio_sm_clear_fifos(pio_cam, sm_cam);
 }
 
 /********************************************************************************
 function:   Resume camera DMA transfer
 parameter:
 ********************************************************************************/
+/*
 void cam_play()
 {
     cam_running = true;
     dma_channel_set_write_addr(DMA_CAM_RD_CH, cam_ptr, true);
+}
+*/
+
+void cam_play()
+{
+    cam_running = true;
+
+    // Reset the state machine
+    pio_sm_restart(pio_cam, sm_cam);
+    pio_sm_clear_fifos(pio_cam, sm_cam);
+
+    // Reload X and Y registers
+    pio_sm_put_blocking(pio_cam, sm_cam, 0);
+    pio_sm_put_blocking(pio_cam, sm_cam, CAM_FUL_SIZE - 1);
+
+    // Restart DMA from beginning of buffer
+    dma_channel_set_write_addr(DMA_CAM_RD_CH, cam_ptr, false);
+    dma_channel_set_trans_count(DMA_CAM_RD_CH, CAM_FUL_SIZE, false);
+
+    // Restart PIO
+    pio_sm_set_enabled(pio_cam, sm_cam, true);
+
+    // Start DMA
+    dma_channel_start(DMA_CAM_RD_CH);
 }
 
 /*
@@ -267,5 +308,33 @@ void cam_swap_rgb565_bytes(uint8_t *bufferSrc, uint8_t *bufferDest, size_t pixel
 
         src += 2;
         dst += 2;
+    }
+}
+
+void cam_rotate_90_mirror_vertical_rgb565(uint8_t *src, uint8_t *dst,
+                                          uint16_t src_width,
+                                          uint16_t src_height)
+{
+    uint16_t *source = (uint16_t *)src;
+    uint16_t *dest   = (uint16_t *)dst;
+
+    uint16_t dst_width  = src_height; // 320
+    uint16_t dst_height = src_width;  // 240
+
+    for (uint16_t y = 0; y < src_height; y++)
+    {
+        for (uint16_t x = 0; x < src_width; x++)
+        {
+            uint16_t pixel = source[y * src_width + x];
+
+            // rotation 90°
+            uint16_t new_x = src_height - 1 - y;
+            uint16_t new_y = x;
+
+            // miroir vertical
+            new_y = dst_height - 1 - new_y;
+
+            dest[new_y * dst_width + new_x] = pixel;
+        }
     }
 }

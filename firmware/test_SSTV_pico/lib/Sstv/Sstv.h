@@ -193,15 +193,17 @@ public:
     void sendMire(modeCoul mCoul);
     void sendImg(modeCoul mCoul);
     void sendCameraRGB(uint8_t *ptr);
-    
-    
+    void rgb2yuv(uint8_t *src, uint8_t *dst, uint16_t width, uint16_t height);
+   
+   
     SSTVMode_t mode;
 private:
 
     void timerCallback();
     static void marshall();
    
-    
+    void pixelRGB2YUV(uint8_t R, uint8_t G, uint8_t B, uint8_t *Y, uint8_t *U, uint8_t *V);
+    uint8_t clamp_u8(int32_t v);
 
         
     static Sstv* anchor;

@@ -262,7 +262,7 @@ const SSTVMode_t MP73N{
 Sstv::Sstv()
  {
     anchor = this;
-    setFreqBase(7100000L);
+    setFreqBase(7040000L);
 }
 
 Sstv::Sstv(const Sstv& orig) {
@@ -853,6 +853,67 @@ void Sstv::sendCameraYUV(uint8_t *ptr) {
     sendEndVis();
     standby(); // turn off transmitter
     Serial.println(F("done!"));
+}
+uint8_t Sstv::clamp_u8(int32_t v)
+{
+    if (v < 0) return 0;
+    if (v > 255) return 255;
+    return (uint8_t)v;
+}
+
+void Sstv::pixelRGB2YUV(uint8_t R, uint8_t G, uint8_t B, uint8_t *Y, uint8_t *U, uint8_t *V)
+{
+    int32_t y = 16  + (65738 * R +129057 * G + 25064 * B) / 256000;
+    int32_t u = 128 +(-37945 * R - 74494 * G +112439 * B) / 256000;
+    int32_t v = 128 +(112439 * R - 94154 * G - 18285 * B) / 256000;
+
+    *Y = clamp_u8(y);
+    *U = clamp_u8(u);
+    *V = clamp_u8(v);
+}
+
+void Sstv::rgb2yuv(uint8_t *src, uint8_t *dst, uint16_t width, uint16_t height)
+{
+    uint32_t i = 0;
+
+    for (uint16_t y = 0; y < height; y++)
+    {
+        for (uint16_t x = 0; x < width; x += 2)
+        {
+            uint16_t rgb0 = ((uint16_t)src[i] << 8) | src[i + 1];
+            i += 2;
+
+            uint8_t r0 = (rgb0 >> 11) & 0x1F;
+            uint8_t g0 = (rgb0 >> 5) & 0x3F;
+            uint8_t b0 = rgb0 & 0x1F;
+
+            r0 = (r0 << 3) | (r0 >> 2);
+            g0 = (g0 << 2) | (g0 >> 4);
+            b0 = (b0 << 3) | (b0 >> 2);
+
+            uint8_t Y0, U0, V0;
+            pixelRGB2YUV(r0, g0, b0, &Y0, &U0, &V0);
+
+            uint16_t rgb1 = ((uint16_t)src[i] << 8) | src[i + 1];
+            i += 2;
+
+            uint8_t r1 = (rgb1 >> 11) & 0x1F;
+            uint8_t g1 = (rgb1 >> 5) & 0x3F;
+            uint8_t b1 = rgb1 & 0x1F;
+
+            r1 = (r1 << 3) | (r1 >> 2);
+            g1 = (g1 << 2) | (g1 >> 4);
+            b1 = (b1 << 3) | (b1 >> 2);
+
+            uint8_t Y1, U1, V1;
+            pixelRGB2YUV(r1, g1, b1, &Y1, &U1, &V1);
+
+            *dst++ = Y0;
+            *dst++ = (U0 + U1) >> 1;
+            *dst++ = Y1;
+            *dst++ = (V0 + V1) >> 1;
+        }
+    }
 }
 
 
