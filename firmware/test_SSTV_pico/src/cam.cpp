@@ -257,6 +257,35 @@ void cam_play()
 }
 */
 
+
+
+/*
+void cam_play()
+{
+    cam_running = true;
+
+    // Arrêt complet
+    dma_channel_abort(DMA_CAM_RD_CH);
+    pio_sm_set_enabled(pio_cam, sm_cam, false);
+    pio_sm_clear_fifos(pio_cam, sm_cam);
+    pio_sm_restart(pio_cam, sm_cam);
+
+    // Réinitialiser les registres X et Y
+    pio_sm_put_blocking(pio_cam, sm_cam, 0);
+    pio_sm_put_blocking(pio_cam, sm_cam, CAM_FUL_SIZE - 1);
+
+    // Préparer le DMA
+    dma_channel_set_write_addr(DMA_CAM_RD_CH, cam_ptr, false);
+    dma_channel_set_trans_count(DMA_CAM_RD_CH, CAM_FUL_SIZE, false);
+
+    // Démarrer le DMA AVANT le PIO
+    dma_channel_start(DMA_CAM_RD_CH);
+
+    // Le PIO repartira à start0 puis attendra le prochain VSYNC
+    pio_sm_set_enabled(pio_cam, sm_cam, true);
+}
+ * */
+
 void cam_play()
 {
     cam_running = true;
@@ -279,6 +308,7 @@ void cam_play()
     // Start DMA
     dma_channel_start(DMA_CAM_RD_CH);
 }
+
 
 /*
 void cam_swap_rgb565_bytes(uint8_t *buffer, size_t pixel_count)
@@ -310,6 +340,7 @@ void cam_swap_rgb565_bytes(uint8_t *bufferSrc, uint8_t *bufferDest, size_t pixel
         dst += 2;
     }
 }
+
 
 void cam_rotate_90_mirror_vertical_rgb565(uint8_t *src, uint8_t *dst,
                                           uint16_t src_width,

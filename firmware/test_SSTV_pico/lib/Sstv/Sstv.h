@@ -25,11 +25,13 @@
 #include "hardware/structs/timer.h"
 #include "Dds.h"
 
+
+
 #define ALARM_NUM 0
 
 #define ALARM_IRQ TIMER0_IRQ_0
 
-#define FREQ 7100000  //40m
+//#define FREQ 7100000  //40m
 //#define  FREQ 14240000  //20m
 //#define  FREQ 14260000  //20m
 
@@ -168,7 +170,7 @@ extern const SSTVMode_t MP73N;
 class Sstv : public Dds 
 {
 public:
-    Sstv();
+    Sstv(uint32_t _freq);
     Sstv(const Sstv& orig);
     virtual ~Sstv();
     void tx(const SSTVMode_t &_mode);
@@ -204,8 +206,8 @@ private:
    
     void pixelRGB2YUV(uint8_t R, uint8_t G, uint8_t B, uint8_t *Y, uint8_t *U, uint8_t *V);
     uint8_t clamp_u8(int32_t v);
-
-        
+    
+    uint32_t freq;
     static Sstv* anchor;
     int nbEchPerBit;    //nombre d'échantillons pour un bit en accord avec le bit rate
     bool firstLine;

@@ -23,6 +23,11 @@
  * ov5640
  * https://fr.aliexpress.com/item/1005003006706291.html
  * 
+ * I2C scan results:
+ *
+ * 0x15 : CST816    (capacitive touch controller)
+ * 0x6B : QMI8658C  (6-axis IMU)
+ * 0x7E : OV5640 camera SCCB/I2C control interface
  * 
  */
 #include <Arduino.h>
@@ -31,28 +36,32 @@
 #include "DEV_Config.h"
 #include "cam.h"
 #include "CST816D.h"
-//#include "Dds.h"
 #include "Sstv.h"
 #include "SSTVDisplay.h"
+#include <Menu.h> 
+
 
 #define SSTV_WIDTH  320
 #define SSTV_HEIGHT 240
 
-uint8_t cam_buffer[SSTV_WIDTH * SSTV_HEIGHT * 2];
+uint8_t cam_buffer_A[SSTV_WIDTH * SSTV_HEIGHT * 2];
+uint8_t cam_buffer_B[SSTV_WIDTH * SSTV_HEIGHT * 2];
 
 UWORD *BlackImage;
 volatile bool touch_flag = false;
 volatile bool stateObjMod = false;
 
 //SSTVMode_t mode=Scottie1; //defaut mode
-SSTVMode_t mode = PD90; //defaut mode
+//SSTVMode_t mode = PD90; //defaut mode
+SSTVMode_t mode;  //in setup menu
 
 bool sendFlag = false;
 
-//Dds dds;
 
-Sstv *sstv;
+Menu *leMenu;
+Sstv *monSstv;
 SSTVDisplay incrustation; 
+config cfg;
 
 extern "C" char *sbrk(int incr);
 
@@ -75,6 +84,11 @@ void setup() {
     }
     DEV_SET_PWM(0);
 
+    leMenu = new Menu(); // Menu de configuration
+    leMenu->setup();
+
+    delete(leMenu);
+    
     // Initialisation du tactile
     CST816D_init(CST816D_Point_Mode);
 
@@ -93,11 +107,11 @@ void setup() {
     config_cam_buffer(); // config buffer
     start_cam(); // start streaming
 
-    sstv = new Sstv();
-    //dds.setFreqCW(7100000L);
+    EEPROM.begin(sizeof (config));
+    EEPROM.get(0, cfg);
+    mode=cfg.sstv;
+    monSstv = new Sstv(cfg.freq+cfg.offset);
     stateObjMod = true; //il faut que l'objet mod ait le temps de s'initialiser avant de lancer le dds dans le core 1
-
-
 }
 
 void loop() {
@@ -150,7 +164,7 @@ void loop() {
                 Serial.println("Mode MP73-N");
                 break;
             case 'k':
-                sstv->tx(mode);
+                monSstv->tx(mode);
                 Serial.println("camera");
                 sendFlag = true;
             case 'h':
@@ -180,61 +194,62 @@ void loop() {
 
                 break;
             case 'm':
-                sstv->tx(mode);
+                monSstv->tx(mode);
                 if (mode.visCode == SSTV_ROBOT_36 || mode.visCode == SSTV_ROBOT_72 || mode.visCode == SSTV_PD_50 || mode.visCode == SSTV_PD_90) {
-                    sstv->sendMire(YUV);
+                    monSstv->sendMire(YUV);
                 } else if (mode.visCode == SSTV_MP_73_N) {
-                    sstv->sendMireNarrow();
+                    monSstv->sendMireNarrow();
                 } else {
-                    sstv->sendMire(RGB);
+                    monSstv->sendMire(RGB);
                 }
                 break;
             case 'p':
-                sstv->tx(mode);
+                monSstv->tx(mode);
                 if (mode.visCode == SSTV_ROBOT_36 || mode.visCode == SSTV_ROBOT_72 || mode.visCode == SSTV_PD_50 || mode.visCode == SSTV_PD_90) {
-                    sstv->sendImg(YUV);
+                    monSstv->sendImg(YUV);
                 } else if (mode.visCode == SSTV_MP_73_N) {
-                    sstv->sendImgNarrow();
+                    monSstv->sendImgNarrow();
                 } else {
-                    sstv->sendImg(RGB);
+                    monSstv->sendImg(RGB);
                 }
                 break;
             case 'i':
                 Serial.println("test idle");
-                sstv->idle();
+                monSstv->idle();
                 break;
             case 's':
                 Serial.println("standby an gain off");
-                sstv->standby();
+                monSstv->standby();
                 break;
         }
     }
     if (buffer_ready) {
-        cam_swap_rgb565_bytes(cam_ptr, cam_buffer, CAM_FUL_SIZE);
+        cam_swap_rgb565_bytes(cam_ptr, cam_buffer_A, CAM_FUL_SIZE);
+        //cam_swap_rgb565_bytes(cam_ptr,CAM_FUL_SIZE);
         if (sendFlag || touch_flag) {
             //cam_pause();
-            cam_rotate_90_mirror_vertical_rgb565(cam_buffer, cam_ptr, 240, 320);
+            cam_rotate_90_mirror_vertical_rgb565(cam_buffer_A, cam_buffer_B, 240, 320);
             if (mode.visCode == SSTV_ROBOT_36 || mode.visCode == SSTV_ROBOT_72 || mode.visCode == SSTV_PD_50 || mode.visCode == SSTV_PD_90 || mode.visCode == SSTV_MP_73_N) {
                 Serial.println("YUV565 QVGA");
-                sstv->rgb2yuv(cam_ptr, cam_buffer, 320, 240);
-                incrustation.drawString(100, 30, "F4GOH", cam_buffer, YUV);
-                sstv->tx(mode);
+                monSstv->rgb2yuv(cam_buffer_B, cam_buffer_A, 320, 240);
+                incrustation.drawString(cfg.posx, cfg.posy, cfg.call, cam_buffer_A, YUV);
+                monSstv->tx(mode);
                 if (mode.visCode == SSTV_MP_73_N) {
-                    sstv->sendCameraYUVNarrow((uint8_t*) cam_buffer);
+                    monSstv->sendCameraYUVNarrow((uint8_t*) cam_buffer_A);
                 } else {
-                    sstv->sendCameraYUV((uint8_t*) cam_buffer);
+                    monSstv->sendCameraYUV((uint8_t*) cam_buffer_A);
                 }
             } else {
                 Serial.println("RGB565 QVGA");
-                incrustation.drawString(100, 30, "F4GOH", cam_ptr, RGB);                    
-                sstv->tx(mode);
-                sstv->sendCameraRGB((uint8_t*) cam_ptr);
+                incrustation.drawString(cfg.posx, cfg.posy, cfg.call, cam_buffer_B, RGB);                    
+                monSstv->tx(mode);
+                monSstv->sendCameraRGB((uint8_t*) cam_buffer_B);
             }
             sendFlag = false;
             touch_flag = false;
             //cam_play();
         } else {
-            LCD_2IN_Display((UBYTE *) cam_buffer);
+            LCD_2IN_Display((UBYTE *) cam_buffer_A);
         }
         //delay(1000);
         //Serial.print("RAM libre : ");
@@ -250,7 +265,7 @@ void setup1(void) {
     while (!stateObjMod) {
     }
     delay(1); //nécessaire pour que le dds démarre
-    sstv->coreUnSetup();
+    monSstv->coreUnSetup();
 }
 
 /*

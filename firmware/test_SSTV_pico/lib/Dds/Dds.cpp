@@ -67,16 +67,19 @@ void __not_in_flash_func(Dds::coreUnSetup)(){
 //A simplifier pour le calcul des fréquences beaucoup de répétitions
 
 void Dds::setFreqBase(uint32_t freq) {
+    /*
     uint64_t ratio = (uint64_t) CLK_KHZ * 1000LL * (1 << 24) / (uint64_t) freq;
     periods = (uint32_t) ratio;
     dwsfr = SSTV_TONE_SPACING * (periods / freq) / 100L;
     baseFreq = periods - (10 << 24); // + 3 x Abstand 1,46 Hz
     //wsfr[1] = wsfr[0] - dwsfr;
+     * */
+    baseFreq=freq;
 }
 
 void __not_in_flash_func(Dds::setFreq)(uint32_t freq){
 //void Dds::setFreq(uint32_t freq) {
-    static constexpr uint32_t IF_FREQ = 7040000UL;
+    static uint32_t IF_FREQ = baseFreq;
     static constexpr uint32_t DDS_OFFSET = (10UL << 24);
     static constexpr uint64_t DDS_NUM =
             (uint64_t) CLK_KHZ * 1000ULL * (1ULL << 24);

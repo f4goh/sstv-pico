@@ -259,10 +259,11 @@ const SSTVMode_t MP73N{
 };
 
 
-Sstv::Sstv()
- {
+Sstv::Sstv(uint32_t _freq)
+{   
+    freq=_freq;
     anchor = this;
-    setFreqBase(7040000L);
+    setFreqBase(freq);
 }
 
 Sstv::Sstv(const Sstv& orig) {
@@ -282,7 +283,7 @@ void Sstv::tx(const SSTVMode_t &_mode) {
     mode = _mode;    
     Serial.println(mode.visCode);
     irqDone = 0;
-    setFreqBase(FREQ);
+    //setFreqBase(FREQ);
 
      // Enable the interrupt for the alarm (we're using Alarm 0)
     hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM) ;
