@@ -55,6 +55,30 @@ typedef enum  {
   TEXT_ALIGN_CENTER_BOTH = 3
 } textAlignment_t;
 
+// Les valeurs de l'enum correspondent aux indices du tableau
+enum ColorIndex {
+    COLOR_BLACK = 0,
+    COLOR_WHITE,
+    COLOR_RED,
+    COLOR_GREEN,
+    COLOR_BLUE,
+    COLOR_YELLOW,
+    COLOR_CYAN,
+    COLOR_MAGENTA,
+    COLOR_ORANGE,
+    COLOR_GRAY,
+
+    COLOR_COUNT
+};
+
+enum class FontType : uint8_t {
+    ARIAL_10 = 0,
+    ARIAL_16,
+    ARIAL_24,
+    DEJAVU_BOLD_40,
+
+    FONT_COUNT
+};
 
 
 typedef struct  {
@@ -91,6 +115,9 @@ public:
     uint16_t width(void) const { return sstvWidth; };
     uint16_t height(void) const { return sstvHeight; };
         
+    void setColor(ColorIndex color);
+    
+    void setFont(FontType font);
     
      // Draws a string at the given location, returns how many chars have been written
     uint16_t drawString(int16_t x, int16_t y, const String &text,uint8_t *_ptrImage,modeCoul _modeC);
@@ -117,7 +144,7 @@ private:
     colorRGB_t         colorRGB;
     colorYUV_t         colorYUV;
     uint16_t color565;
-    
+
     
     const uint8_t	 *fontData;
     
@@ -126,6 +153,7 @@ private:
     colorYUV_t RGBtoYUV(colorRGB_t color);
     
     
+    static const colorRGB_t colors[COLOR_COUNT];
     
     
     void inline drawInternal(int16_t xMove, int16_t yMove, int16_t width, int16_t height, const uint8_t *data, uint16_t offset, uint16_t bytesInData) __attribute__((always_inline));

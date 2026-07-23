@@ -18,6 +18,28 @@
 
 #include "SSTVDisplay.h"
 
+const colorRGB_t SSTVDisplay::colors[COLOR_COUNT] =
+{
+    {  0,   0,   0},   // Noir
+    {255, 255, 255},   // Blanc
+    {255,   0,   0},   // Rouge
+    {  0, 255,   0},   // Vert
+    {  0,   0, 255},   // Bleu
+    {255, 255,   0},   // Jaune
+    {  0, 255, 255},   // Cyan
+    {255,   0, 255},   // Magenta
+    {255, 165,   0},   // Orange
+    {128, 128, 128}    // Gris
+};
+
+static const uint8_t* const fontList[] =
+{
+    ArialMT_Plain_10,
+    ArialMT_Plain_16,
+    ArialMT_Plain_24,
+    DejaVu_Sans_Bold_40
+};
+
 SSTVDisplay::SSTVDisplay() {
         sstvWidth = 320;                // ajouter setter 
 	sstvHeight = 240;               // ajouter setter 
@@ -65,6 +87,22 @@ colorYUV_t SSTVDisplay::RGBtoYUV(colorRGB_t color){
 }
         
 
+void SSTVDisplay::setColor(ColorIndex color)
+{
+    if (color < COLOR_COUNT) {
+        colorRGB = colors[color];
+    }
+}
+
+void SSTVDisplay::setFont(FontType font)
+{
+    uint8_t index = static_cast<uint8_t>(font);
+
+    if (index < static_cast<uint8_t>(FontType::FONT_COUNT))
+    {
+        fontData = fontList[index];
+    }
+}
 
 
 uint16_t SSTVDisplay::drawString(int16_t xMove, int16_t yMove, const String &strUser,uint8_t *_ptrImage,modeCoul _modeC) {

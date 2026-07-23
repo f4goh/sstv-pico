@@ -39,6 +39,7 @@
 #include "Sstv.h"
 #include "SSTVDisplay.h"
 #include <Menu.h> 
+#include "Expander.h"
 
 
 #define SSTV_WIDTH  320
@@ -56,12 +57,15 @@ volatile bool stateObjMod = false;
 SSTVMode_t mode;  //in setup menu
 
 bool sendFlag = false;
+uint32_t lastMinuteTrigger = 0;
+bool timeFlag = false;
 
 
 Menu *leMenu;
 Sstv *monSstv;
 SSTVDisplay incrustation; 
 config cfg;
+Expander expander;
 
 extern "C" char *sbrk(int incr);
 
@@ -110,6 +114,7 @@ void setup() {
     EEPROM.begin(sizeof (config));
     EEPROM.get(0, cfg);
     mode=cfg.sstv;
+    Serial.println(cfg.freq+cfg.offset);
     monSstv = new Sstv(cfg.freq+cfg.offset);
     stateObjMod = true; //il faut que l'objet mod ait le temps de s'initialiser avant de lancer le dds dans le core 1
 }
@@ -223,16 +228,40 @@ void loop() {
                 break;
         }
     }
+    
+    uint32_t now = millis();
+
+    // Déclenchement automatique
+    if (cfg.manAuto)
+    {
+        if (now - lastMinuteTrigger >= (cfg.minute * 60000UL))
+        {
+            lastMinuteTrigger = now;
+            timeFlag = true;
+        }
+    }
+    else
+    {
+        timeFlag = false;
+    }
+
+    
     if (buffer_ready) {
         cam_swap_rgb565_bytes(cam_ptr, cam_buffer_A, CAM_FUL_SIZE);
         //cam_swap_rgb565_bytes(cam_ptr,CAM_FUL_SIZE);
-        if (sendFlag || touch_flag) {
+        if (sendFlag || touch_flag || timeFlag) {
+            expander.setBit(0,LOW);
             //cam_pause();
             cam_rotate_90_mirror_vertical_rgb565(cam_buffer_A, cam_buffer_B, 240, 320);
             if (mode.visCode == SSTV_ROBOT_36 || mode.visCode == SSTV_ROBOT_72 || mode.visCode == SSTV_PD_50 || mode.visCode == SSTV_PD_90 || mode.visCode == SSTV_MP_73_N) {
                 Serial.println("YUV565 QVGA");
                 monSstv->rgb2yuv(cam_buffer_B, cam_buffer_A, 320, 240);
+                incrustation.setFont(FontType::DEJAVU_BOLD_40);
+                incrustation.setColor(COLOR_RED);
                 incrustation.drawString(cfg.posx, cfg.posy, cfg.call, cam_buffer_A, YUV);
+                incrustation.setFont(FontType::ARIAL_24);
+                incrustation.setColor(COLOR_CYAN);
+                incrustation.drawString(cfg.posx+210, cfg.posy+15, cfg.locator, cam_buffer_A, YUV);
                 monSstv->tx(mode);
                 if (mode.visCode == SSTV_MP_73_N) {
                     monSstv->sendCameraYUVNarrow((uint8_t*) cam_buffer_A);
@@ -241,12 +270,19 @@ void loop() {
                 }
             } else {
                 Serial.println("RGB565 QVGA");
-                incrustation.drawString(cfg.posx, cfg.posy, cfg.call, cam_buffer_B, RGB);                    
+                incrustation.setFont(FontType::DEJAVU_BOLD_40);
+                incrustation.setColor(COLOR_BLUE);
+                incrustation.drawString(cfg.posx, cfg.posy, cfg.call, cam_buffer_B, RGB);
+                incrustation.setFont(FontType::ARIAL_24);
+                incrustation.setColor(COLOR_CYAN);
+                incrustation.drawString(cfg.posx+210, cfg.posy+15, cfg.locator, cam_buffer_B, RGB);                
                 monSstv->tx(mode);
                 monSstv->sendCameraRGB((uint8_t*) cam_buffer_B);
             }
             sendFlag = false;
             touch_flag = false;
+            timeFlag = false;
+            expander.setBit(0,HIGH);
             //cam_play();
         } else {
             LCD_2IN_Display((UBYTE *) cam_buffer_A);

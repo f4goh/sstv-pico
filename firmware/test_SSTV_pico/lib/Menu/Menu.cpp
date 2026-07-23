@@ -138,6 +138,9 @@ void Menu::_help_(ArgList& L, Stream& S) {
     S.println(F("Set text overlay x                      : posx 15"));
     S.println(F("Set text overlay y                      : posx 15"));
     S.println(F("Set text color (0 to 9)                 : color 5"));
+    S.println(F("  0: Black     1: White     2: Red       3: Orange"));
+    S.println(F("  4: Yellow    5: Green     6: Cyan      7: Blue"));
+    S.println(F("  8: Magenta   9: Gray"));
     S.println(F("Scan I2C bus                            : scan"));
     S.println(F("Show nmea frame  0 or 1                 : nmea 1"));
     S.println(F("Save current configuration to EEPROM    : save"));
@@ -374,6 +377,24 @@ void Menu::_manAuto_(ArgList& L, Stream& S) {
     }
 }
 
+const char* Menu::colorToString(uint8_t color)
+{
+    switch (color)
+    {
+        case 0: return "Black";
+        case 1: return "White";
+        case 2: return "Red";
+        case 3: return "Green";
+        case 4: return "Blue";
+        case 5: return "Yellow";
+        case 6: return "Cyan";
+        case 7: return "Magenta";
+        case 8: return "Orange";
+        case 9: return "Gray";
+        default: return "Unknown";
+    }
+}
+
 
 void Menu::_show_(ArgList& L, Stream& S) {
     S.println("Current configuration :");
@@ -385,7 +406,7 @@ void Menu::_show_(ArgList& L, Stream& S) {
     S.printf("  band           : %s\n\r", bandStr[anchor->cfg.band]);
     S.printf("  posx           : %u\n\r", anchor->cfg.posx);
     S.printf("  posy           : %u\n\r", anchor->cfg.posy);
-    S.printf("  color          : %u\n\r", anchor->cfg.color);
+    S.printf("  color          : %s\n\r", anchor->colorToString(anchor->cfg.color));
     S.printf("  TXing mode     : %s\n\r", anchor->cfg.manAuto ? "AUTOMATIC" : "MANUAL");
     S.printf("  minute         : %u min\n\r", anchor->cfg.minute);
 }

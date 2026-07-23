@@ -32,7 +32,7 @@ typedef struct {
   char call[10];
   int32_t offset;
   uint8_t minute;    // Durée en minutes
-  char locator[5];
+  char locator[7];
   SSTVMode_t sstv;
   uint8_t mode;
   uint8_t posx;
@@ -83,6 +83,7 @@ public:
     static Menu* anchor;        
     bool acceptCmd(String cmd, int longMin, int longMax);
     void scanI2C();
+    const char* colorToString(uint8_t color);
     static const char* modeStr[11];
     static const char* bandStr[6];
     freqbands tabfreq[5];
